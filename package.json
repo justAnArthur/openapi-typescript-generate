@@ -1,6 +1,6 @@
 {
-  "name": "openapi-generate",
-  "version": "0.1.0",
+  "name": "openapi-typescript-generate",
+  "version": "0.1.1",
   "description": "CLI tool to generate TypeScript types and clients from OpenAPI specs",
   "type": "module",
   "bin": {
@@ -19,10 +19,10 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "prepublishOnly": "pnpm run build",
-    "clean": "rimraf dist"
+    "build": "bun tsc",
+    "dev": "bun tsc --watch",
+    "prepublishOnly": "bun run build",
+    "clean": "bun rimraf dist"
   },
   "dependencies": {
     "commander": "^13.1.0",
@@ -48,7 +48,7 @@
     "codegen",
     "cli"
   ],
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "MIT",
   "publishConfig": {
     "access": "public"
   },

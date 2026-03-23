@@ -1,15 +1,15 @@
-# @jobify/connect-generate
+# openapi-typescript-generate
 
-CLI tool and library to generate TypeScript types and API clients from OpenAPI specs.
+CLI tool to generate TypeScript types and clients from OpenAPI specs.
 
 ## Installation
 
 ```bash
-npm install -g @jobify/connect-generate
-# or
-pnpm add -D @jobify/connect-generate
+bun add -g openapi-typescript-generate
+# or add as a dev dependency
+bun add -d openapi-typescript-generate
 # or use directly
-npx @jobify/connect-generate
+bunx openapi-typescript-generate
 ```
 
 ## CLI Usage
@@ -45,7 +45,7 @@ The `--api-urls` value is a comma-separated list. Each entry can be:
 ## Programmatic Usage
 
 ```typescript
-import { generate } from "@jobify/connect-generate"
+import { generate } from "openapi-typescript-generate"
 
 await generate({
   apiUrls: "user-service@http://localhost:8081",
@@ -71,7 +71,9 @@ generated/
 ## Development
 
 ```bash
-pnpm install
-pnpm run build
+bun install
+bun run build
+bun run dev
+bun run clean
 ```
 
