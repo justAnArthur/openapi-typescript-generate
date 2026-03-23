@@ -333,11 +333,23 @@ function generateSchemaTypeAliases(
     }
   }
 
+  const usedNames = new Set(alreadyExported)
   const aliases = schemaNames
     .filter((name) => !alreadyExported.has(name))
-    .map(
-      (name) => `export type ${name} = components["schemas"]["${name}"];`
-    )
+    .map((name) => {
+      const baseAlias = toSafeIdent(name) || "Schema"
+      let alias = baseAlias
+      let counter = 2
+
+      while (usedNames.has(alias)) {
+        alias = `${baseAlias}_${counter}`
+        counter++
+      }
+
+      usedNames.add(alias)
+      const schemaKeyLiteral = JSON.stringify(name)
+      return `export type ${alias} = components["schemas"][${schemaKeyLiteral}];`
+    })
 
   if (aliases.length === 0) return dts
 
