@@ -1,0 +1,61 @@
+{
+  "name": "openapi-generate",
+  "version": "0.1.0",
+  "description": "CLI tool to generate TypeScript types and clients from OpenAPI specs",
+  "type": "module",
+  "bin": {
+    "connect-generate": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "prepublishOnly": "pnpm run build",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "commander": "^13.1.0",
+    "openapi-typescript": "7.9.1"
+  },
+  "devDependencies": {
+    "@jobify/tsconfig": "workspace:*",
+    "@types/node": "^22.15.0",
+    "dotenv": "^17.2.1",
+    "rimraf": "~5.0.10",
+    "typescript": "^5.8.2"
+  },
+  "peerDependencies": {
+    "dotenv": ">=16.0.0"
+  },
+  "peerDependenciesMeta": {
+    "dotenv": {
+      "optional": true
+    }
+  },
+  "keywords": [
+    "openapi",
+    "typescript",
+    "codegen",
+    "cli"
+  ],
+  "license": "SEE LICENSE IN LICENSE",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/justAnArthur/jobify.git",
+    "directory": "packages/connect-generate"
+  }
+}
