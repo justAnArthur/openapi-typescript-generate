@@ -33,6 +33,10 @@ program
     "Directory where generated files will be written (default: ./generated)",
     "./generated"
   )
+  .option(
+    "--no-enum-export-types",
+    "Disable generating `export type` aliases for enums"
+  )
   .action(async (opts) => {
     const apiUrls =
       opts.apiUrls ||
@@ -54,7 +58,12 @@ program
     const outputDir = resolve(process.cwd(), opts.outputDir)
 
     try {
-      await generate({ apiUrls, apiDocsPath, outputDir })
+      await generate({
+        apiUrls,
+        apiDocsPath,
+        outputDir,
+        enumExportTypes: opts.enumExportTypes
+      })
     } catch (err) {
       console.error("[connect-generate] Fatal error:", err)
       process.exit(1)

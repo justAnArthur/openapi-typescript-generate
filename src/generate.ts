@@ -18,6 +18,11 @@ export interface GenerateOptions {
    * Absolute or relative directory where generated files will be written.
    */
   outputDir: string
+  /**
+   * Whether to emit `export type` aliases for generated enums.
+   * @default true
+   */
+  enumExportTypes?: boolean
 }
 
 function parseServices(apiUrls: string) {
@@ -195,12 +200,13 @@ function toSafeIdent(name: string) {
  * Transform generated d.ts content to replace JsDoc @enum string unions with
  * exported TypeScript enums.
  */
-function transformEnums(dts: string) {
+function transformEnums(dts: string, enumExportTypes = true) {
   const enumMatches: {
+    lineIndex: number
     name: string
     values: string[]
-    fullLine: string
     indent: string
+    resolvedName?: string
   }[] = []
 
   const lines = dts.split(/\r?\n/)
@@ -220,7 +226,12 @@ function transformEnums(dts: string) {
         const union = propMatch[3]
         const values = [...union.matchAll(/"([^"]+)"/g)].map((m) => m[1])
         if (values.length) {
-          enumMatches.push({ name, values, fullLine: propLine, indent })
+          enumMatches.push({
+            lineIndex: j,
+            name,
+            values,
+            indent
+          })
         }
       }
     }
@@ -228,9 +239,38 @@ function transformEnums(dts: string) {
 
   if (enumMatches.length === 0) return dts
 
-  const enumsText = enumMatches
-    .map((e) => {
-      const members = e.values
+  const fingerprintToResolvedName = new Map<string, string>()
+  const resolvedNameToFingerprint = new Map<string, string>()
+  const resolvedNameToValues = new Map<string, string[]>()
+
+  for (const e of enumMatches) {
+    const fingerprint = e.values.join("\u0000")
+    const key = `${e.name}|${fingerprint}`
+    const existingByFingerprint = fingerprintToResolvedName.get(key)
+    if (existingByFingerprint) {
+      e.resolvedName = existingByFingerprint
+      continue
+    }
+
+    let candidate = e.name
+    let counter = 2
+    while (true) {
+      const existingFingerprint = resolvedNameToFingerprint.get(candidate)
+      if (!existingFingerprint || existingFingerprint === fingerprint) {
+        e.resolvedName = candidate
+        resolvedNameToFingerprint.set(candidate, fingerprint)
+        resolvedNameToValues.set(candidate, e.values)
+        fingerprintToResolvedName.set(key, candidate)
+        break
+      }
+      candidate = `${e.name}_${counter}`
+      counter++
+    }
+  }
+
+  const enumsText = [...resolvedNameToValues.entries()]
+    .map(([resolvedName, values]) => {
+      const members = values
         .map((v) => {
           let member = v
           if (!/^[$A-Z_][0-9A-Z_$]*$/i.test(member)) {
@@ -242,18 +282,24 @@ function transformEnums(dts: string) {
         })
         .join(",\n")
 
-      const constName = e.name
-      const typeName = e.name
-      return `export const ${constName} = {\n${members}\n} as const;\n\nexport type ${typeName} = typeof ${constName}[keyof typeof ${constName}];\n`
+      const constName = resolvedName
+      const typeBlock = enumExportTypes
+        ? `\n\nexport type ${resolvedName} = typeof ${constName}[keyof typeof ${constName}];`
+        : ""
+
+      return `export const ${constName} = {\n${members}\n} as const;${typeBlock}\n`
     })
     .join("\n")
 
-  let newDts = dts
+  const newLines = [...lines]
   for (const e of enumMatches) {
-    const escaped = e.fullLine.replace(/[\\\-\/^$*+?.()|[\]{}]/g, "\\$&")
-    const propRegex = new RegExp("^" + escaped + "$", "m")
-    newDts = newDts.replace(propRegex, `${e.indent}${e.name}: ${e.name};`)
+    const typeExpr = enumExportTypes
+      ? e.resolvedName!
+      : `typeof ${e.resolvedName}[keyof typeof ${e.resolvedName}]`
+    newLines[e.lineIndex] = `${e.indent}${e.name}: ${typeExpr};`
   }
+
+  let newDts = newLines.join("\n")
 
   const insertPoint = newDts.indexOf("\nexport interface components {")
   if (insertPoint !== -1) {
@@ -312,7 +358,8 @@ function toPascal(s: string) {
 async function generateForService(
   service: { name: string; url: string },
   apiDocsPath: string,
-  outputDir: string
+  outputDir: string,
+  enumExportTypes: boolean
 ) {
   const json = await fetchSpec(service.name, service.url, apiDocsPath)
   const {
@@ -393,7 +440,7 @@ async function generateForService(
       const ts = await openapiTS(_schema)
       const out = path.replace(".json", ".ts")
       let dts = astToString(ts)
-      dts = transformEnums(dts)
+      dts = transformEnums(dts, enumExportTypes)
       dts = generateSchemaTypeAliases(dts, Object.keys(usedSchemas))
       writeFileSync(out, dts)
       console.log(`[connect-generate] wrote types to ${out}`)
@@ -427,7 +474,12 @@ async function generateForService(
  * Main generation function. Call this programmatically or from the CLI.
  */
 export async function generate(options: GenerateOptions): Promise<void> {
-  const { apiUrls, apiDocsPath, outputDir } = options
+  const {
+    apiUrls,
+    apiDocsPath,
+    outputDir,
+    enumExportTypes = true
+  } = options
 
   const services = parseServices(apiUrls)
 
@@ -439,7 +491,12 @@ export async function generate(options: GenerateOptions): Promise<void> {
 
   for (const s of services) {
     try {
-      const groups = await generateForService(s, apiDocsPath, outputDir)
+      const groups = await generateForService(
+        s,
+        apiDocsPath,
+        outputDir,
+        enumExportTypes
+      )
       servicesWithGroups.push({ ...s, groups })
     } catch (err) {
       console.error(`[connect-generate] failed for service ${s.name}:`, err)

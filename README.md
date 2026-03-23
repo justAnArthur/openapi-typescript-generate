@@ -28,6 +28,7 @@ connect-generate \
 | `-u, --api-urls <urls>`      | `API_URLS` or `API_URL` | *(required)*  | Comma-separated service entries (`name@url` or `name=url` or just `url`) |
 | `-p, --api-docs-path <path>` | `API_DOCS_URL_PATH`     | `/api-docs`   | Path appended to each service URL to fetch the OpenAPI spec              |
 | `-o, --output-dir <dir>`     | —                       | `./generated` | Directory where generated files will be written                          |
+| `--no-enum-export-types`     | —                       | `false`       | Do not emit `export type` aliases for generated enums                    |
 
 ### Environment Variables
 
@@ -51,6 +52,7 @@ await generate({
   apiUrls: "user-service@http://localhost:8081",
   apiDocsPath: "/api-docs",
   outputDir: "./generated",
+  enumExportTypes: false,
 })
 ```
 

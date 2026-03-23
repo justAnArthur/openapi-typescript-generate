@@ -1,6 +1,6 @@
 {
   "name": "openapi-typescript-generate",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "CLI tool to generate TypeScript types and clients from OpenAPI specs",
   "type": "module",
   "bin": {
