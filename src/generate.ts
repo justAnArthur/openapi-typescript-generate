@@ -78,11 +78,26 @@ async function fetchSpec(
   return await response.json()
 }
 
+function normalizeSchemaRef(ref: string) {
+  if (!ref) return undefined
+  if (ref.startsWith("#/components/schemas/")) return ref
+  if (ref.startsWith("#/") || ref.includes("://")) return undefined
+  return `#/components/schemas/${ref}`
+}
+
 function collectRefs(obj: any, refs = new Set<string>()) {
   if (!obj || typeof obj !== "object") return refs
 
   if (obj.$ref && typeof obj.$ref === "string") {
     refs.add(obj.$ref)
+  }
+
+  const mapping = obj.discriminator?.mapping
+  if (mapping && typeof mapping === "object") {
+    for (const value of Object.values(mapping) as string[]) {
+      const normalized = normalizeSchemaRef(value)
+      if (normalized) refs.add(normalized)
+    }
   }
 
   for (const value of Object.values(obj)) {
