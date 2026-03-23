@@ -458,7 +458,7 @@ export async function generate(options: GenerateOptions): Promise<void> {
     lines.push("}")
     lines.push("")
 
-    const svcInterfaceName = `Jobify_${svcIdent}_Client`
+    const svcInterfaceName = `${toPascal(svc.name)}Client`
     lines.push(`export interface ${svcInterfaceName} {`)
     for (const group of svc.groups) {
       const grpIdent = toSafeIdent(group)
@@ -500,9 +500,7 @@ export async function generate(options: GenerateOptions): Promise<void> {
     const svcIdent = toSafeIdent(svc.name)
     const pascal = toPascal(svc.name)
     idxLines.push(`export { create${pascal}Client } from "./${svc.name}"`)
-    idxLines.push(
-      `export type { Jobify_${svcIdent}_Client as ${pascal}Client } from "./${svc.name}"`
-    )
+    idxLines.push(`export type { ${pascal}Client } from "./${svc.name}"`)
     idxLines.push("")
   }
 
