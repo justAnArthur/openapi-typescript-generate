@@ -1,6 +1,6 @@
 {
   "name": "openapi-typescript-generate",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "CLI tool to generate TypeScript types and clients from OpenAPI specs",
   "type": "module",
   "bin": {
@@ -22,7 +22,8 @@
     "build": "bun tsc",
     "dev": "bun tsc --watch",
     "prepublishOnly": "bun run build",
-    "clean": "bun rimraf dist"
+    "clean": "bun rimraf dist",
+    "test": "bun src/cli.ts --output-dir ./services/github/generated --api-docs-path /api.github.com/api.github.com.json --api-urls github@https://raw.githubusercontent.com/github/rest-api-description/main/descriptions"
   },
   "dependencies": {
     "commander": "^13.1.0",

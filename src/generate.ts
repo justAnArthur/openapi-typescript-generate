@@ -139,10 +139,24 @@ function decodeJsonPointerToken(token: string) {
   return token.replace(/~1/g, "/").replace(/~0/g, "~")
 }
 
-function expandRefsThroughComponents(
-  seedRefs: Set<string>,
-  components: Record<string, any>
-) {
+function resolveLocalRef(root: any, ref: string) {
+  if (!ref.startsWith("#/")) return undefined
+
+  const tokens = ref
+    .slice(2)
+    .split("/")
+    .map(decodeJsonPointerToken)
+
+  let current: any = root
+  for (const token of tokens) {
+    if (!current || typeof current !== "object") return undefined
+    current = current[token]
+  }
+
+  return current
+}
+
+function expandRefsTransitive(seedRefs: Set<string>, rootDoc: any) {
   const allRefs = new Set(seedRefs)
   const queue = [...seedRefs]
   const visited = new Set<string>()
@@ -152,20 +166,14 @@ function expandRefsThroughComponents(
     if (!ref || visited.has(ref)) continue
     visited.add(ref)
 
-    const match = ref.match(/^#\/components\/([^/]+)\/([^/]+)$/)
-    if (!match) continue
-
-    const section = match[1]
-    const name = decodeJsonPointerToken(match[2])
-
     // Schema recursion is handled by collectSchemas; here we resolve refs
-    // reachable via non-schema components (responses, requestBodies, etc.).
-    if (section === "schemas") continue
+    // reachable via any local pointer (components, x-webhooks, callbacks, etc.).
+    if (ref.startsWith("#/components/schemas/")) continue
 
-    const component = components?.[section]?.[name]
-    if (!component) continue
+    const target = resolveLocalRef(rootDoc, ref)
+    if (!target) continue
 
-    const nestedRefs = collectRefs(component)
+    const nestedRefs = collectRefs(target)
     for (const nestedRef of nestedRefs) {
       if (allRefs.has(nestedRef)) continue
       allRefs.add(nestedRef)
@@ -352,12 +360,17 @@ async function generateForService(
       `[connect-generate] generating group "${key}" with ${groupPaths.length} paths -> ${path}`
     )
 
-    const refs = new Set<string>()
-    for (const [, def] of groupPaths) {
-      collectRefs(def, refs)
+    const groupDocForRefs = {
+      ...schema,
+      paths: Object.fromEntries(groupPaths),
+      components: {
+        ...components,
+        schemas: components.schemas ?? {}
+      }
     }
 
-    const expandedRefs = expandRefsThroughComponents(refs, components)
+    const refs = collectRefs(groupDocForRefs)
+    const expandedRefs = expandRefsTransitive(refs, groupDocForRefs)
     const usedSchemas = collectSchemas(expandedRefs, components.schemas ?? {})
 
     const _schema = JSON.stringify(
