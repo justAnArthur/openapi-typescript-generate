@@ -55,7 +55,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/justAnArthur/jobify.git",
-    "directory": "packages/connect-generate"
+    "url": "https://github.com/justAnArthur/openapi-typescript-generate"
   }
 }
