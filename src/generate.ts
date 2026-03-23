@@ -135,6 +135,47 @@ function collectSchemas(refs: Set<string>, allSchemas: Record<string, any>) {
   return collected
 }
 
+function decodeJsonPointerToken(token: string) {
+  return token.replace(/~1/g, "/").replace(/~0/g, "~")
+}
+
+function expandRefsThroughComponents(
+  seedRefs: Set<string>,
+  components: Record<string, any>
+) {
+  const allRefs = new Set(seedRefs)
+  const queue = [...seedRefs]
+  const visited = new Set<string>()
+
+  while (queue.length) {
+    const ref = queue.pop()
+    if (!ref || visited.has(ref)) continue
+    visited.add(ref)
+
+    const match = ref.match(/^#\/components\/([^/]+)\/([^/]+)$/)
+    if (!match) continue
+
+    const section = match[1]
+    const name = decodeJsonPointerToken(match[2])
+
+    // Schema recursion is handled by collectSchemas; here we resolve refs
+    // reachable via non-schema components (responses, requestBodies, etc.).
+    if (section === "schemas") continue
+
+    const component = components?.[section]?.[name]
+    if (!component) continue
+
+    const nestedRefs = collectRefs(component)
+    for (const nestedRef of nestedRefs) {
+      if (allRefs.has(nestedRef)) continue
+      allRefs.add(nestedRef)
+      queue.push(nestedRef)
+    }
+  }
+
+  return allRefs
+}
+
 function toSafeIdent(name: string) {
   let id = name.replace(/[^a-zA-Z0-9_$]/g, "_")
   if (/^[0-9]/.test(id)) id = "_" + id
@@ -316,7 +357,8 @@ async function generateForService(
       collectRefs(def, refs)
     }
 
-    const usedSchemas = collectSchemas(refs, components.schemas ?? {})
+    const expandedRefs = expandRefsThroughComponents(refs, components)
+    const usedSchemas = collectSchemas(expandedRefs, components.schemas ?? {})
 
     const _schema = JSON.stringify(
       {
@@ -512,7 +554,6 @@ export async function generate(options: GenerateOptions): Promise<void> {
   const idxLines: string[] = []
 
   for (const svc of servicesWithGroups) {
-    const svcIdent = toSafeIdent(svc.name)
     const pascal = toPascal(svc.name)
     idxLines.push(`export { create${pascal}Client } from "./${svc.name}"`)
     idxLines.push(`export type { ${pascal}Client } from "./${svc.name}"`)
