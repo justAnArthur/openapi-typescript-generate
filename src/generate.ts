@@ -196,6 +196,23 @@ function toSafeIdent(name: string) {
   return id
 }
 
+const TS_RESERVED_WORDS = new Set([
+  "abstract", "any", "as", "asserts", "async", "await", "bigint", "boolean", "break",
+  "case", "catch", "class", "const", "constructor", "continue", "debugger", "declare",
+  "default", "delete", "do", "else", "enum", "export", "extends", "false", "finally",
+  "for", "from", "function", "get", "if", "implements", "import", "in", "infer",
+  "instanceof", "interface", "is", "keyof", "let", "module", "namespace", "new", "null",
+  "number", "object", "of", "package", "private", "protected", "public", "readonly",
+  "require", "return", "set", "static", "string", "super", "switch", "symbol", "this",
+  "throw", "true", "try", "type", "typeof", "undefined", "unique", "unknown", "var",
+  "void", "while", "with", "yield"
+])
+
+function toSafeTypeIdent(name: string) {
+  const id = toSafeIdent(name)
+  return TS_RESERVED_WORDS.has(id) ? `_${id}` : id
+}
+
 /**
  * Transform generated d.ts content to replace JsDoc @enum string unions with
  * exported TypeScript enums.
@@ -337,7 +354,7 @@ function generateSchemaTypeAliases(
   const aliases = schemaNames
     .filter((name) => !alreadyExported.has(name))
     .map((name) => {
-      const baseAlias = toSafeIdent(name) || "Schema"
+      const baseAlias = toSafeTypeIdent(name) || "Schema"
       let alias = baseAlias
       let counter = 2
 
